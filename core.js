@@ -38,7 +38,7 @@
       if(header.length!==markers.length)result.issues.push({code:'divider',line:i+2,expected:header.length,actual:markers.length});
       if(header.length>LIMITS.columns)result.issues.push({code:'columns',line:i+1});
       i++;
-      while(i+1<lines.length && lines[i+1].trim() && lines[i+1].includes('|') && !/^(`{3,}|~{3,})/.test(lines[i+1].trim())) {
+      while(i+1<lines.length && lines[i+1].trim() && !/^(`{3,}|~{3,})/.test(lines[i+1].trim())) {
         i++;used.add(i);const cells=splitRow(lines[i]);
         result.rows.push({line:i+1,cells});
         if(cells.length!==header.length)result.issues.push({code:'width',line:i+1,expected:header.length,actual:cells.length});

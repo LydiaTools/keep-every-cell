@@ -20,6 +20,14 @@ test('a short row is not padded',()=>{
  const p=C.parse('| A | B | C |\n| - | - | - |\n| one | two |');
  assert.deepEqual(p.rows[0].cells,['one','two']);assert.equal(p.issues[0].actual,2);
 });
+test('a body line without pipes is retained as a short row, not discarded as prose',()=>{
+ const source='| A | B |\n| - | - |\none value';const p=C.parse(source);
+ assert.deepEqual(p.rows[0].cells,['one value']);assert.equal(p.issues[0].code,'width');assert.throws(()=>C.makeWorkbook(source));
+});
+test('a single-column table keeps body lines without outer pipes',()=>{
+ const p=C.parse('| A |\n| - |\none value\nanother');
+ assert.deepEqual(p.rows.map(r=>r.cells),[['one value'],['another']]);assert.equal(p.issues.length,0);
+});
 test('divider width mismatch blocks export',()=>{
  const source='| A | B |\n| - |\n| 1 | 2 |';
  assert.equal(C.parse(source).issues[0].code,'divider');assert.throws(()=>C.makeWorkbook(source));

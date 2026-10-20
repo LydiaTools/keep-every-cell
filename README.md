@@ -89,8 +89,10 @@ before treating the workflow file as a successful run.
 ## Scope and privacy
 
 Early preview: **one pipe-delimited Markdown table**, optional outer pipes and
-a whole `markdown` code-fence wrapper. A bare newline ends a row; surrounding
-prose remains in source and is explicitly excluded from the workbook. Ordinary
+a whole `markdown` code-fence wrapper. A newline ends a row; a blank line ends
+the table. A contiguous line without pipes is retained as a one-cell row and
+checked against the header. Blank-separated prose remains in source and is
+explicitly excluded from the workbook. Ordinary
 code blocks are not imported. Markdown styling stays literal. This is not a full
 GFM renderer, PDF/OCR extractor, CSV cleaner or AI fact checker.
 
