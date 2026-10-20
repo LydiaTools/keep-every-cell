@@ -1,0 +1,64 @@
+'use strict';
+const fs=require('node:fs'),path=require('node:path'),http=require('node:http'),assert=require('node:assert/strict');
+const {pathToFileURL}=require('node:url');
+const {chromium}=require('playwright');
+const root=path.resolve(__dirname,'..'),out=path.join(root,'runs');fs.mkdirSync(out,{recursive:true});
+const allowed=new Set(['/index.html','/style.css','/core.js','/app.js','/assets/favicon.svg']);
+const server=http.createServer((req,res)=>{
+ const pathname=new URL(req.url,'http://127.0.0.1').pathname;
+ if(!allowed.has(pathname)){res.writeHead(404);return res.end();}
+ res.setHeader('Content-Type',pathname.endsWith('.js')?'text/javascript':pathname.endsWith('.css')?'text/css':pathname.endsWith('.svg')?'image/svg+xml':'text/html');
+ res.end(fs.readFileSync(path.join(root,pathname)));
+});
+(async()=>{
+ await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+ const origin='http://127.0.0.1:'+server.address().port;
+ const browser=await chromium.launch({headless:true,...(process.env.CELL_BROWSER_CHANNEL?{channel:process.env.CELL_BROWSER_CHANNEL}:{})});
+ const errors=[],requests=[];
+ try{
+  const context=await browser.newContext({viewport:{width:1360,height:960},acceptDownloads:true});
+  await context.route('**/*',route=>new URL(route.request().url()).origin===origin?route.continue():route.abort());
+  const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>requests.push(r.url()));
+  await page.goto(origin+'/index.html');
+  await page.getByRole('button',{name:'Try a broken table',exact:true}).click();
+  assert.equal(await page.locator('#download').isDisabled(),true);
+  assert.deepEqual(await page.locator('#preview-table tbody tr').first().locator('td').allTextContents(),['3','0017','Cedar','Oak','12']);
+  assert.ok((await page.locator('#status').innerText()).includes('Resolve 1'));
+  await page.screenshot({path:path.join(out,'desktop-problem.png'),fullPage:true});
+  const requestsAfterLoad=requests.length;
+  await context.setOffline(true);
+  await page.locator('select[data-repair-line="3"]').selectOption('1');
+  await page.getByRole('button',{name:'Join these cells',exact:true}).click();
+  assert.ok((await page.locator('#source').inputValue()).includes('Cedar \\| Oak'));
+  assert.equal(await page.locator('#download').isEnabled(),true);
+  await page.locator('select[data-column="2"]').selectOption('number');
+  await page.screenshot({path:path.join(out,'desktop-reviewed.png'),fullPage:true});
+  const downloadEvent=page.waitForEvent('download');await page.locator('#download').click();const download=await downloadEvent;
+  await download.saveAs(path.join(out,'browser-review.xlsx'));assert.equal(await download.failure(),null);
+  const reviewEvent=page.waitForEvent('download');await page.locator('#review-json').click();const reviewDownload=await reviewEvent;
+  await reviewDownload.saveAs(path.join(out,'browser-review.json'));
+  const review=JSON.parse(fs.readFileSync(path.join(out,'browser-review.json'),'utf8'));
+  assert.equal(review.explicit_joins.length,1);assert.equal(review.issues.length,0);assert.deepEqual(review.column_types,['text','text','number']);
+  assert.deepEqual(review.rows[0].cells,['0017','Cedar | Oak','12']);
+  await page.setViewportSize({width:390,height:844});
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));
+  await page.screenshot({path:path.join(out,'mobile-reviewed.png'),fullPage:true});
+  const beforeLanguage=await page.locator('#source').inputValue();
+  await page.locator('#language').click();assert.equal(await page.locator('html').getAttribute('lang'),'zh-CN');
+  assert.equal(await page.locator('#source').inputValue(),beforeLanguage);assert.equal(await page.locator('select[data-column="2"]').inputValue(),'number');
+  await page.screenshot({path:path.join(out,'mobile-reviewed-zh.png'),fullPage:true});
+  const hostile='| A | B |\n| - | - |\n| <img src=https://example.invalid/ onerror=alert(1)> | <script>alert(1)</script> |';
+  await page.locator('#source').fill(hostile);await page.waitForFunction(()=>document.querySelector('#preview-table tbody').textContent.includes('<script>'));
+  assert.equal(await page.locator('#preview-table img, #preview-table script').count(),0);
+  assert.equal(requests.length,requestsAfterLoad);
+  await context.close();
+  const fileContext=await browser.newContext({offline:true});
+  const filePage=await fileContext.newPage();filePage.on('pageerror',e=>errors.push(e.message));
+  await filePage.goto(pathToFileURL(path.join(root,'index.html')).href+'?lang=zh');
+  await filePage.locator('#example').click();assert.equal(await filePage.locator('#download').isDisabled(),true);
+  assert.ok((await filePage.locator('#status').innerText()).includes('解决 1'));
+  await fileContext.close();assert.deepEqual(errors,[]);
+  const report={captured_at:new Date().toISOString(),scope:'Chromium, original synthetic content, local HTTP and offline file entry; no model or real user data',raggedRowCellsRetained:4,exportBlockedBeforeRepair:true,explicitJoinVerified:true,realWorkbookDownloaded:true,reviewJsonVerified:true,englishAndChinese:true,mobileNoPageOverflow:true,afterLoadOutboundRequests:requests.length-requestsAfterLoad,offlineDoubleClickEntry:true,pageErrors:errors};
+  fs.writeFileSync(path.join(out,'browser-report.json'),JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report));
+ }finally{await browser.close();await new Promise(resolve=>server.close(resolve));}
+})().catch(e=>{console.error(e);server.close();process.exitCode=1;});
