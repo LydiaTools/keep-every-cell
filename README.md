@@ -35,7 +35,7 @@ needed for the app; its scripts and styles are local files.
 2. Inspect the highlighted line. For the original sample, choose cells **2 + 3**
    on line 3 and click **Join these cells**.
 3. Leave IDs as Text. Choose Number for a quantity column if you want calculations.
-4. Download the reviewed `.xlsx`, or save review JSON to retain the current
+4. Use **Save .md** to keep a source copy that you can open later. Download the reviewed `.xlsx`, or save review JSON to retain the current
    source, parsed cells, issues, types and explicit join records.
 
 Text columns keep leading zeros, long identifiers and formula-like strings as
@@ -100,7 +100,8 @@ UTF-8 input limit: 256 KiB; 1,000 data rows; 32 header columns; 20,000 data cell
 32,767 characters per cell. The preview displays the first 50 rows and, for an invalid over-wide row, 64
 columns; all parsed cells remain in source and review JSON. Over-limit
 data blocks export instead of producing a partial workbook. Input is held in
-the tab and is not restored after reload. Review JSON includes the text you
+the tab and is not restored after reload. Review JSON is an audit record, not a re-import project file. Use Save .md
+to continue from source later. Review JSON includes the text you
 choose to download; keep it private when your source is private.
 
 The app has no runtime dependencies, analytics or network client. Its content

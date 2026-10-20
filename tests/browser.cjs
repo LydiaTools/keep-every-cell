@@ -25,6 +25,8 @@ const server=http.createServer((req,res)=>{
   assert.deepEqual(await page.locator('#preview-table tbody tr').first().locator('td').allTextContents(),['3','0017','Cedar','Oak','12']);
   assert.ok((await page.locator('#status').innerText()).includes('Resolve 1'));
   await page.screenshot({path:path.join(out,'desktop-problem.png'),fullPage:true});
+  const rawEvent=page.waitForEvent('download');await page.locator('#save-source').click();const raw=await rawEvent;await raw.saveAs(path.join(out,'saved-source.md'));
+  assert.equal(fs.readFileSync(path.join(out,'saved-source.md'),'utf8'),await page.locator('#source').inputValue());
   const requestsAfterLoad=requests.length;
   await context.setOffline(true);
   await page.locator('select[data-repair-line="3"]').selectOption('1');
@@ -47,16 +49,17 @@ const server=http.createServer((req,res)=>{
   await page.locator('#language').click();assert.equal(await page.locator('html').getAttribute('lang'),'zh-CN');
   assert.equal(await page.locator('#source').inputValue(),beforeLanguage);assert.equal(await page.locator('select[data-column="2"]').inputValue(),'number');
   await page.screenshot({path:path.join(out,'mobile-reviewed-zh.png'),fullPage:true});
-  const hostile='| A | B |\n| - | - |\n| <img src=https://example.invalid/ onerror=alert(1)> | <script>alert(1)</script> |';
-  await page.locator('#source').fill(hostile);await page.waitForFunction(()=>document.querySelector('#preview-table tbody').textContent.includes('<script>'));
-  assert.equal(await page.locator('#preview-table img, #preview-table script').count(),0);
   const chooserEvent=page.waitForEvent('filechooser');await page.locator('#open-file').focus();await page.keyboard.press('Enter');
-  const chooser=await chooserEvent;const imported='| A | B |\n| - | - |\n| 007 | 中文 |';
+  const chooser=await chooserEvent;const imported='| SKU | Description | Qty |\n| - | - | - |\n| 0005 | 中文 | not a number |';
   await chooser.setFiles({name:'original-sample.md',mimeType:'text/markdown',buffer:Buffer.from(imported)});
-  await page.waitForFunction(()=>document.querySelector('#source').value.includes('007 | 中文'));
+  await page.waitForFunction(()=>document.querySelector('#source').value.includes('0005 | 中文'));
+  assert.equal(await page.locator('select[data-column="2"]').inputValue(),'text');
   await page.locator('#file').setInputFiles({name:'invalid-utf8.md',mimeType:'text/markdown',buffer:Buffer.from([0xc3,0x28])});
   await page.waitForFunction(()=>document.querySelector('#notice').textContent.includes('UTF-8'));
   assert.equal(await page.locator('#source').inputValue(),imported);
+  const hostile='| A | B |\n| - | - |\n| <img src=https://example.invalid/ onerror=alert(1)> | <script>alert(1)</script> |';
+  await page.locator('#source').fill(hostile);await page.waitForFunction(()=>document.querySelector('#preview-table tbody').textContent.includes('<script>'));
+  assert.equal(await page.locator('#preview-table img, #preview-table script').count(),0);
   assert.equal(requests.length,requestsAfterLoad);
   await context.close();
   const fileContext=await browser.newContext({offline:true});
@@ -65,7 +68,7 @@ const server=http.createServer((req,res)=>{
   await filePage.locator('#example').click();assert.equal(await filePage.locator('#download').isDisabled(),true);
   assert.ok((await filePage.locator('#status').innerText()).includes('解决 1'));
   await fileContext.close();assert.deepEqual(errors,[]);
-  const report={captured_at:new Date().toISOString(),scope:'Chromium, original synthetic content, local HTTP and offline file entry; no model or real user data',raggedRowCellsRetained:4,exportBlockedBeforeRepair:true,explicitJoinVerified:true,realWorkbookDownloaded:true,reviewJsonVerified:true,englishAndChinese:true,mobileNoPageOverflow:true,afterLoadOutboundRequests:requests.length-requestsAfterLoad,offlineDoubleClickEntry:true,keyboardFileImport:true,invalidUtf8KeepsPreviousSource:true,pageErrors:errors};
+  const report={captured_at:new Date().toISOString(),scope:'Chromium, original synthetic content, local HTTP and offline file entry; no model or real user data',raggedRowCellsRetained:4,exportBlockedBeforeRepair:true,explicitJoinVerified:true,realWorkbookDownloaded:true,reviewJsonVerified:true,englishAndChinese:true,mobileNoPageOverflow:true,afterLoadOutboundRequests:requests.length-requestsAfterLoad,offlineDoubleClickEntry:true,keyboardFileImport:true,invalidUtf8KeepsPreviousSource:true,newFileResetsNumericTypes:true,rawMarkdownDownloadVerified:true,pageErrors:errors};
   fs.writeFileSync(path.join(out,'browser-report.json'),JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report));
  }finally{await browser.close();await new Promise(resolve=>server.close(resolve));}
 })().catch(e=>{console.error(e);server.close();process.exitCode=1;});
