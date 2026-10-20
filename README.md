@@ -6,7 +6,9 @@ Review an AI-generated Markdown table before handing it to Excel. Keep extra
 cells visible, choose the repair yourself, and export a workbook with deliberate
 column types. English and Chinese interface. No account, upload or model API.
 
-[简体中文](README.zh-CN.md) · [Source](https://github.com/LydiaTools/keep-every-cell) · [Reproducible feedback](https://github.com/LydiaTools/keep-every-cell/issues)
+[Try the app](https://lydiatools.github.io/keep-every-cell/) · [Download the offline ZIP](https://github.com/LydiaTools/keep-every-cell/releases/download/v0.1.0/keep-every-cell-v0.1.0.zip) · [简体中文](README.zh-CN.md) · [Source](https://github.com/LydiaTools/keep-every-cell) · [Reproducible feedback](https://github.com/LydiaTools/keep-every-cell/issues)
+
+![Actual synthetic sample: the fourth cell remains visible and Excel export is blocked until the row is repaired.](assets/review-problem.png)
 
 ## The moment this helps
 
@@ -42,6 +44,15 @@ Text columns keep leading zeros, long identifiers and formula-like strings as
 strings. Numeric columns accept plain decimals with at most 15 significant
 digits; ambiguous values block export. Numeric conversion can change spelling
 or display. No dates or formulas are inferred.
+
+<details>
+<summary>See the same table after an explicit repair and quantity-type choice</summary>
+
+![Actual reviewed table: 0017 stays text, Cedar and Oak share a cell, Qty is chosen as Number.](assets/reviewed-table.png)
+
+</details>
+
+[Recorded CI, workbook readback and screenshot provenance](docs/verification.md).
 
 ## What is different
 

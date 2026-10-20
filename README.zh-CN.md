@@ -6,7 +6,11 @@
 修法由你选择；编号默认保留文本，数量列再明确选数字。中英文界面，不需账号、
 上传或模型 API。
 
-[English](README.md) · [源码](https://github.com/LydiaTools/keep-every-cell)
+[在线使用](https://lydiatools.github.io/keep-every-cell/?lang=zh) · [离线 ZIP](https://github.com/LydiaTools/keep-every-cell/releases/download/v0.1.0/keep-every-cell-v0.1.0.zip) · [English](README.md) · [源码](https://github.com/LydiaTools/keep-every-cell)
+
+![真实合成示例：额外内容保留可见，修好错列前不能导出 Excel。](assets/review-problem.png)
+
+[中文手机截图](assets/review-mobile-zh.png) · [已记录的验收与图片来源](docs/verification.md)
 
 ## 怎么用
 
