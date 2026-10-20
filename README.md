@@ -97,7 +97,8 @@ code blocks are not imported. Markdown styling stays literal. This is not a full
 GFM renderer, PDF/OCR extractor, CSV cleaner or AI fact checker.
 
 UTF-8 input limit: 256 KiB; 1,000 data rows; 32 header columns; 20,000 data cells;
-32,767 characters per cell. The preview displays the first 50 rows. Over-limit
+32,767 characters per cell. The preview displays the first 50 rows and, for an invalid over-wide row, 64
+columns; all parsed cells remain in source and review JSON. Over-limit
 data blocks export instead of producing a partial workbook. Input is held in
 the tab and is not restored after reload. Review JSON includes the text you
 choose to download; keep it private when your source is private.

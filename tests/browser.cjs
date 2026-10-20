@@ -50,6 +50,13 @@ const server=http.createServer((req,res)=>{
   const hostile='| A | B |\n| - | - |\n| <img src=https://example.invalid/ onerror=alert(1)> | <script>alert(1)</script> |';
   await page.locator('#source').fill(hostile);await page.waitForFunction(()=>document.querySelector('#preview-table tbody').textContent.includes('<script>'));
   assert.equal(await page.locator('#preview-table img, #preview-table script').count(),0);
+  const chooserEvent=page.waitForEvent('filechooser');await page.locator('#open-file').focus();await page.keyboard.press('Enter');
+  const chooser=await chooserEvent;const imported='| A | B |\n| - | - |\n| 007 | 中文 |';
+  await chooser.setFiles({name:'original-sample.md',mimeType:'text/markdown',buffer:Buffer.from(imported)});
+  await page.waitForFunction(()=>document.querySelector('#source').value.includes('007 | 中文'));
+  await page.locator('#file').setInputFiles({name:'invalid-utf8.md',mimeType:'text/markdown',buffer:Buffer.from([0xc3,0x28])});
+  await page.waitForFunction(()=>document.querySelector('#notice').textContent.includes('UTF-8'));
+  assert.equal(await page.locator('#source').inputValue(),imported);
   assert.equal(requests.length,requestsAfterLoad);
   await context.close();
   const fileContext=await browser.newContext({offline:true});
@@ -58,7 +65,7 @@ const server=http.createServer((req,res)=>{
   await filePage.locator('#example').click();assert.equal(await filePage.locator('#download').isDisabled(),true);
   assert.ok((await filePage.locator('#status').innerText()).includes('解决 1'));
   await fileContext.close();assert.deepEqual(errors,[]);
-  const report={captured_at:new Date().toISOString(),scope:'Chromium, original synthetic content, local HTTP and offline file entry; no model or real user data',raggedRowCellsRetained:4,exportBlockedBeforeRepair:true,explicitJoinVerified:true,realWorkbookDownloaded:true,reviewJsonVerified:true,englishAndChinese:true,mobileNoPageOverflow:true,afterLoadOutboundRequests:requests.length-requestsAfterLoad,offlineDoubleClickEntry:true,pageErrors:errors};
+  const report={captured_at:new Date().toISOString(),scope:'Chromium, original synthetic content, local HTTP and offline file entry; no model or real user data',raggedRowCellsRetained:4,exportBlockedBeforeRepair:true,explicitJoinVerified:true,realWorkbookDownloaded:true,reviewJsonVerified:true,englishAndChinese:true,mobileNoPageOverflow:true,afterLoadOutboundRequests:requests.length-requestsAfterLoad,offlineDoubleClickEntry:true,keyboardFileImport:true,invalidUtf8KeepsPreviousSource:true,pageErrors:errors};
   fs.writeFileSync(path.join(out,'browser-report.json'),JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report));
  }finally{await browser.close();await new Promise(resolve=>server.close(resolve));}
 })().catch(e=>{console.error(e);server.close();process.exitCode=1;});

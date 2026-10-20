@@ -73,6 +73,10 @@ test('oversized input and excessive rows fail without a partial export',()=>{
  const source='| A | B |\n| - | - |\n'+Array.from({length:1001},()=> '| a | b |').join('\n');
  assert.ok(C.parse(source).issues.some(x=>x.code==='rows'));assert.equal(C.parse(source).rows.length,1001);assert.throws(()=>C.makeWorkbook(source));
 });
+test('an extremely wide broken row retains every cell and cannot export',()=>{
+ const source='| A | B |\n| - | - |\n| '+Array.from({length:80},(_,i)=>String(i)).join(' | ')+' |';
+ const p=C.parse(source);assert.equal(p.rows[0].cells.length,80);assert.equal(p.rows[0].cells[79],'79');assert.throws(()=>C.makeWorkbook(source));
+});
 test('untrusted header names and markup stay ordinary string data',()=>{
  const source='| __proto__ | <script> |\n| - | - |\n| 0007 | <img onerror=alert(1)> |';
  const workbook=C.makeWorkbook(source);
